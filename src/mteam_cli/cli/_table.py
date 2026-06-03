@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 
 def cjk_visual_width(text: str) -> int:
-    """Approximate terminal display width: ASCII = 1, CJK = 2."""
-    cjk = sum(1 for c in text if "一" <= c <= "鿿" or "　" <= c <= "〿")
-    return len(text) + cjk
+    """Terminal display width: wide/fullwidth glyphs = 2, others = 1.
+
+    Uses ``unicodedata.east_asian_width`` so it covers not just the CJK
+    ideograph block but also fullwidth punctuation (， ： ！ etc.) and other
+    East-Asian wide ranges that a hand-rolled range check misses — those are
+    common in M-Team titles and would otherwise misalign every following column.
+    """
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in text)
 
 
 def pad_cell(text: str, width: int) -> str:

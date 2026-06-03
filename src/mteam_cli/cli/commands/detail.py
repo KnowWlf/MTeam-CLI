@@ -9,7 +9,7 @@ from typing import Any
 from mteam_cli.api import MTeamAPIError, gen_dl_token, get_torrent_detail
 from mteam_cli.api import humanize as hz
 from mteam_cli.cli._account import add_account_arg, require_query, resolve_account_or_exit
-from mteam_cli.cli._emit import Field, add_format_arg, add_raw_arg, emit_raw, emit_record
+from mteam_cli.cli._emit import Field, add_format_arg, add_raw_arg, emit_raw, notice, emit_record
 from mteam_cli.core.config import Settings
 
 _FIELDS = [
@@ -54,10 +54,10 @@ async def handle(
             account.api_key, args.id, base_url=settings.api_base_url
         )
     except MTeamAPIError as exc:
-        print(f"错误: {exc}")
+        notice(f"错误: {exc}")
         return 1
     if not data:
-        print(f"未找到种子 {args.id}。")
+        notice(f"未找到种子 {args.id}。")
         return 1
 
     if args.raw:

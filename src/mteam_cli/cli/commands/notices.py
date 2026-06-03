@@ -12,7 +12,7 @@ import logging
 from mteam_cli.api import MTeamAPIError, get_notices
 from mteam_cli.api.public import as_list
 from mteam_cli.cli._account import add_account_arg, require_query, resolve_account_or_exit
-from mteam_cli.cli._emit import add_format_arg, add_raw_arg, auto_fields, emit_raw, emit_rows
+from mteam_cli.cli._emit import add_format_arg, add_raw_arg, auto_fields, emit_raw, notice, emit_rows
 from mteam_cli.core.config import Settings
 
 
@@ -32,7 +32,7 @@ async def handle(
     try:
         data = await get_notices(account.api_key, base_url=settings.api_base_url)
     except MTeamAPIError as exc:
-        print(f"错误: {exc}")
+        notice(f"错误: {exc}")
         return 1
 
     if args.raw:
@@ -41,7 +41,7 @@ async def handle(
 
     rows = as_list(data)
     if not rows:
-        print("无公告。")
+        notice("无公告。")
         return 0
     emit_rows(rows, auto_fields(rows), fmt=args.output_format)
     return 0

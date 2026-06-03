@@ -177,3 +177,12 @@ def emit_raw(data: Any) -> None:
     """Pretty-print the full API payload as JSON to stdout (pipe-clean)."""
     json.dump(data, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
+
+
+def notice(message: str) -> None:
+    """Write a human diagnostic (error / empty-result hint) to stderr.
+
+    Keeps stdout pipe-clean for the machine formats — an error or empty result
+    under ``-f json`` must never put non-JSON text on stdout.
+    """
+    print(message, file=sys.stderr)

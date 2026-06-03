@@ -9,7 +9,7 @@ from typing import Any
 from mteam_cli.api import MTeamAPIError, get_profile
 from mteam_cli.api import humanize as hz
 from mteam_cli.cli._account import add_account_arg, require_query, resolve_account_or_exit
-from mteam_cli.cli._emit import Field, add_format_arg, add_raw_arg, emit_raw, emit_record
+from mteam_cli.cli._emit import Field, add_format_arg, add_raw_arg, emit_raw, notice, emit_record
 from mteam_cli.core.config import Settings
 
 _FIELDS = [
@@ -44,10 +44,10 @@ async def handle(
     try:
         data = await get_profile(account.api_key, base_url=settings.api_base_url, uid=args.uid)
     except MTeamAPIError as exc:
-        print(f"错误: {exc}")
+        notice(f"错误: {exc}")
         return 1
     if not data:
-        print("未获取到 profile 数据。")
+        notice("未获取到 profile 数据。")
         return 1
 
     if args.raw:

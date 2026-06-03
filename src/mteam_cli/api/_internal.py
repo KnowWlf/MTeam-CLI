@@ -38,14 +38,15 @@ MTEAM_WEB_VERSION = os.getenv("MTEAM_WEB_VERSION", "1140")
 
 _SUCCESS_CODES = {"0", "200"}
 _AUTH_CODES = {"401", "403"}
-# Substrings in the API ``message`` that indicate an auth/permission problem.
-# Includes endpoints the API key can't reach (need a full web session): these
-# return "Full authentication is required" / "無許可權" / 401.
+# Substrings in the API ``message`` that UNAMBIGUOUSLY mean an auth/session
+# problem (bad key, or an endpoint that needs a full web session). Kept narrow
+# on purpose: broad words like "權限"/"permission"/"登录" also appear in normal
+# business errors (e.g. "您的等級不足，沒有下載權限" = a quota/level gate, NOT a
+# key problem), so matching them would misreport those as "API key invalid".
 _AUTH_HINTS = (
     "key無效", "key无效", "key invalid",
-    "未登", "登入", "登录", "鉴权", "鑒權",
-    "權限", "权限", "許可權", "许可权",
-    "authentication", "permission", "unauthor",
+    "無許可權", "无许可权",
+    "full authentication",
 )
 
 logger = logging.getLogger("mteam_cli.api")

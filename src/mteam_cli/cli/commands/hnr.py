@@ -13,7 +13,7 @@ import logging
 from mteam_cli.api import MTeamAPIError, get_hnr, load_session
 from mteam_cli.api.public import as_list
 from mteam_cli.cli._account import add_account_arg, resolve_account_or_exit
-from mteam_cli.cli._emit import add_format_arg, add_raw_arg, auto_fields, emit_raw, emit_rows
+from mteam_cli.cli._emit import add_format_arg, add_raw_arg, auto_fields, emit_raw, notice, emit_rows
 from mteam_cli.core.config import Settings
 
 
@@ -34,7 +34,7 @@ async def handle(
     account = resolve_account_or_exit(args, settings)
     session = load_session(account.storage_path(settings.auth_dir))
     if session is None:
-        print(
+        notice(
             f"该端点需要登录会话。请先运行 `mteam-cli login --account {account.username}`，"
             "再执行本命令。"
         )
@@ -42,7 +42,7 @@ async def handle(
 
     uid = args.uid or session.uid
     if not uid:
-        print("无法确定 uid（会话未携带，且未指定 --uid）。")
+        notice("无法确定 uid（会话未携带，且未指定 --uid）。")
         return 1
 
     try:
@@ -54,7 +54,7 @@ async def handle(
             visitorid=session.visitorid,
         )
     except MTeamAPIError as exc:
-        print(f"错误: {exc}")
+        notice(f"错误: {exc}")
         return 1
 
     if args.raw:
@@ -63,7 +63,7 @@ async def handle(
 
     rows = as_list(data)
     if not rows:
-        print("无 H&R 记录。")
+        notice("无 H&R 记录。")
         return 0
     emit_rows(rows, auto_fields(rows), fmt=args.output_format)
     return 0

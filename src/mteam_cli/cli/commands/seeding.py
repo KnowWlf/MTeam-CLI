@@ -15,7 +15,7 @@ from mteam_cli.api import MTeamAPIError, get_own_uid, get_peer_list
 from mteam_cli.api import humanize as hz
 from mteam_cli.api.public import as_list
 from mteam_cli.cli._account import add_account_arg, require_query, resolve_account_or_exit
-from mteam_cli.cli._emit import Field, add_format_arg, add_raw_arg, emit_raw, emit_rows
+from mteam_cli.cli._emit import Field, add_format_arg, add_raw_arg, emit_raw, notice, emit_rows
 from mteam_cli.core.config import Settings
 
 _FIELDS = [
@@ -58,7 +58,7 @@ async def handle(
             page_size=args.limit,
         )
     except MTeamAPIError as exc:
-        print(f"错误: {exc}")
+        notice(f"错误: {exc}")
         return 1
 
     if args.raw:
@@ -67,7 +67,7 @@ async def handle(
 
     rows = [_shape(it) for it in as_list(data)]
     if not rows:
-        print("无下载中种子。" if args.leeching else "无做种中种子。")
+        notice("无下载中种子。" if args.leeching else "无做种中种子。")
         return 0
     emit_rows(rows, _FIELDS, fmt=args.output_format)
     return 0

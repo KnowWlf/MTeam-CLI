@@ -38,7 +38,10 @@ class DailyScheduler:
 
     def pick_daily_time(self) -> str:
         start_min, end_min = _parse_window(self.settings.schedule_window)
-        chosen = random.randint(start_min, end_min)
+        # Support overnight / wrap-around windows (e.g. 23:00-06:00): when
+        # start > end, pick across the wrap and fold back into 0–1439.
+        span = end_min - start_min if end_min >= start_min else end_min + 1440 - start_min
+        chosen = (start_min + random.randint(0, span)) % 1440
         return f"{chosen // 60:02d}:{chosen % 60:02d}"
 
     def loop(self) -> None:
