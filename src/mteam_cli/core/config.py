@@ -7,7 +7,6 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
-# Load .env file if it exists (best-effort; dotenv is a hard dep but guard anyway).
 try:
     from dotenv import load_dotenv
 
@@ -33,19 +32,20 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _suffixed(name: str, i: int) -> str | None:
-    """Read ``{name}_{i}`` and strip; ``None`` if unset/empty."""
     raw = os.getenv(f"{name}_{i}")
     return raw.strip() if raw and raw.strip() else None
 
 
 @dataclass(slots=True, frozen=True)
 class Account:
-    """One M-Team account — credentials AND its own notification config.
+    """One M-Team account.
 
-    Everything is per-account: there is no global notifier. Credentials are
-    independent (``username``/``password``/``totp_secret`` → browser keep-alive;
-    ``api_key`` → data queries). Each notification channel opts in only when its
-    own per-account vars are set.
+    Credentials are independent: ``username``/``password``/``totp_secret`` →
+    browser keep-alive; ``api_key`` → data queries.  Per-account notify config
+    (Telegram / Feishu / SMTP-to) is per-account; the SMTP *server* is shared
+    (see ``Settings``).
+
+    ``has_smtp`` needs both the global SMTP server AND a per-account recipient.
     """
 
     username: str
@@ -56,21 +56,13 @@ class Account:
     telegram_token: str | None = None
     telegram_chat_id: str | None = None
     feishu_token: str | None = None
-    smtp_host: str | None = None
-    smtp_port: int = 465
-    smtp_user: str | None = None
-    smtp_password: str | None = None
-    smtp_from: str | None = None
-    smtp_to: str | None = None
-    smtp_use_tls: bool = True
+    smtp_to: str | None = None  # recipient(s); server config lives on Settings
 
     @property
     def safe_name(self) -> str:
-        """Filesystem-safe variant of the username (matches the legacy script)."""
         return re.sub(r"[^\w\-]", "_", self.username)
 
     def storage_path(self, auth_dir: Path) -> Path:
-        """Per-account localStorage snapshot file."""
         return auth_dir / f"mteam_{self.safe_name}.json"
 
     @property
@@ -89,9 +81,8 @@ class Account:
     def has_feishu(self) -> bool:
         return bool(self.feishu_token)
 
-    @property
-    def has_smtp(self) -> bool:
-        return bool(self.smtp_host and self.smtp_from and self.smtp_to)
+    def has_smtp(self, settings: "Settings") -> bool:
+        return bool(settings.smtp_host and settings.smtp_from and self.smtp_to)
 
 
 @dataclass(slots=True)
@@ -105,6 +96,13 @@ class Settings:
     log_dir: Path
     artifact_dir: Path
     accounts: list[Account] = field(default_factory=list)
+    # ── SMTP server (global, shared across accounts; recipient is per-account) ──
+    smtp_host: str = ""
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
     # ── schedule (global infra knobs) ──
     schedule_window: str = "09:00-11:00"
     schedule_pre_delay_range: str = "10-300"
@@ -122,6 +120,12 @@ class Settings:
             log_dir=ROOT_DIR / os.getenv("MTEAM_LOG_DIR", "data/logs"),
             artifact_dir=ROOT_DIR / os.getenv("MTEAM_ARTIFACT_DIR", "data/artifacts"),
             accounts=cls._parse_accounts(),
+            smtp_host=os.getenv("NOTIFY_SMTP_HOST", "").strip(),
+            smtp_port=_env_int("NOTIFY_SMTP_PORT", 465),
+            smtp_user=os.getenv("NOTIFY_SMTP_USER", "").strip(),
+            smtp_password=os.getenv("NOTIFY_SMTP_PASSWORD", ""),
+            smtp_from=os.getenv("NOTIFY_SMTP_FROM", "").strip(),
+            smtp_use_tls=_env_bool("NOTIFY_SMTP_USE_TLS", True),
             schedule_window=os.getenv("MTEAM_SCHEDULE_WINDOW", "09:00-11:00").strip(),
             schedule_pre_delay_range=os.getenv("MTEAM_SCHEDULE_PRE_DELAY_RANGE", "10-300").strip(),
             schedule_heartbeat_hours=_env_int("MTEAM_SCHEDULE_HEARTBEAT_HOURS", 1),
@@ -129,14 +133,6 @@ class Settings:
 
     @staticmethod
     def _parse_accounts() -> list[Account]:
-        """Parse numbered account blocks: MTEAM_USERNAME_1/_2/..., plus each
-        account's own credentials and notification config.
-
-        An account is NOT skipped for missing password/totp — an api_key-only
-        account is valid (data-only). The loop stops at the first index with
-        neither a username nor an api_key. A row carrying only an api_key (no
-        username) is skipped, since the username addresses the account.
-        """
         accounts: list[Account] = []
         i = 1
         while True:
@@ -158,20 +154,13 @@ class Settings:
                     telegram_token=_suffixed("NOTIFY_TELEGRAM_TOKEN", i),
                     telegram_chat_id=_suffixed("NOTIFY_TELEGRAM_CHAT_ID", i),
                     feishu_token=_suffixed("NOTIFY_FEISHU_TOKEN", i),
-                    smtp_host=_suffixed("NOTIFY_SMTP_HOST", i),
-                    smtp_port=_env_int(f"NOTIFY_SMTP_PORT_{i}", 465),
-                    smtp_user=_suffixed("NOTIFY_SMTP_USER", i),
-                    smtp_password=(os.getenv(f"NOTIFY_SMTP_PASSWORD_{i}") or "") or None,
-                    smtp_from=_suffixed("NOTIFY_SMTP_FROM", i),
                     smtp_to=smtp_to,
-                    smtp_use_tls=_env_bool(f"NOTIFY_SMTP_USE_TLS_{i}", True),
                 )
             )
             i += 1
         return accounts
 
     def resolve_account(self, name: str | None) -> Account:
-        """Resolve an account by username; ``None`` → the first configured one."""
         if not self.accounts:
             raise SystemExit(
                 "未配置任何账户。请设置 MTEAM_USERNAME_1 / MTEAM_API_KEY_1 等环境变量。"

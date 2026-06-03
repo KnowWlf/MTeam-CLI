@@ -13,7 +13,7 @@
 # 时刻自动以「localStorage → 账号密码+TOTP」登录保活。
 #
 # 部署：
-#   1. 填好下面的账户与 NOTIFY_* 配置（生产建议抽到 Secret）
+#   1. 填好下面的账户 + 通知配置（生产建议抽到 Secret）
 #   2. kubectl apply -f kubernetes-manifests/statefulset.yaml
 #   3. kubectl logs -f mteam-cli-0   # 看调度心跳
 ---
@@ -35,7 +35,6 @@ spec:
       labels:
         app: mteam-cli
     spec:
-      # 让挂载的 PVC 对镜像里的 pwuser(uid/gid 1000) 可写。
       securityContext:
         fsGroup: 1000
       containers:
@@ -48,7 +47,7 @@ spec:
               value: Asia/Shanghai
             - name: MTEAM_HEADLESS
               value: "true"
-            # ── 账户 1：凭证 + 通知，全部按账户独立（生产请用 Secret）──
+            # ── 账户 1：凭证 + 通知接收端（生产请用 Secret）─────────
             - name: MTEAM_USERNAME_1
               value: user1
             - name: MTEAM_PASSWORD_1
@@ -64,21 +63,22 @@ spec:
               value: ""
             - name: NOTIFY_FEISHU_TOKEN_1
               value: ""
-            - name: NOTIFY_SMTP_HOST_1
-              value: ""
-            - name: NOTIFY_SMTP_PORT_1
-              value: "465"
-            - name: NOTIFY_SMTP_USER_1
-              value: ""
-            - name: NOTIFY_SMTP_PASSWORD_1
-              value: ""
-            - name: NOTIFY_SMTP_FROM_1
-              value: ""
             - name: NOTIFY_SMTP_TO_1
               value: ""
-            - name: NOTIFY_SMTP_USE_TLS_1
+            # ── SMTP 服务器（全局，所有账户共享）─────────────────────
+            - name: NOTIFY_SMTP_HOST
+              value: ""
+            - name: NOTIFY_SMTP_PORT
+              value: "465"
+            - name: NOTIFY_SMTP_USER
+              value: ""
+            - name: NOTIFY_SMTP_PASSWORD
+              value: ""
+            - name: NOTIFY_SMTP_FROM
+              value: ""
+            - name: NOTIFY_SMTP_USE_TLS
               value: "true"
-            # ── 定时调度（全局）──
+            # ── 定时调度（全局）─────────────────────────────────────
             - name: MTEAM_SCHEDULE_WINDOW
               value: 09:00-11:00
             - name: MTEAM_SCHEDULE_PRE_DELAY_RANGE

@@ -42,9 +42,9 @@ def handle(args: argparse.Namespace, settings: Settings) -> int:
             all_ok = False
         print(f"{status:<8} {name:<26} {value}")
 
-    # Per-account capability + notify matrix (everything is per-account).
+    # Per-account capability + notify matrix.
     print()
-    print("账户（keep-alive 需 user+pass+totp；query 需 api_key；通知按账户独立）：")
+    print("账户（keep-alive 需 user+pass+totp；query 需 api_key）：")
     if not settings.accounts:
         print("  (无账户)")
     for acct in settings.accounts:
@@ -55,7 +55,7 @@ def handle(args: argparse.Namespace, settings: Settings) -> int:
         channels = []
         if acct.has_telegram:
             channels.append("TG")
-        if acct.has_smtp:
+        if acct.has_smtp(settings):
             channels.append("SMTP")
         if acct.has_feishu:
             channels.append("飞书")
@@ -66,6 +66,14 @@ def handle(args: argparse.Namespace, settings: Settings) -> int:
             all_ok = False
         if acct.can_keepalive and not channels:
             print(f"    ⚠ {acct.username} 可保活但无任何通知渠道，结果只记日志。")
+
+    # Global SMTP server status.
+    print()
+    print("SMTP 服务（全局，收件人按账户 NOTIFY_SMTP_TO_<n> / NOTIFY_EMAIL_<n>）：")
+    if settings.smtp_host:
+        print(f"  {settings.smtp_host}:{settings.smtp_port}  from={settings.smtp_from}  tls={settings.smtp_use_tls}")
+    else:
+        print("  (未配置)")
 
     return 0 if all_ok else 1
 

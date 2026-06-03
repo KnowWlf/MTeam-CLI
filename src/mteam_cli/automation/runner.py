@@ -33,7 +33,7 @@ async def run_one_account_tick(
         logger.warning("[%s] 缺少保活凭证，跳过", account.username)
         return CheckinResult(username=account.username, ok=False, skipped=True)
 
-    hub = build_notifier_hub(account, logger)
+    hub = build_notifier_hub(account, settings, logger)
     try:
         async with browser_session_ctx(settings, logger) as ctx:
             result = await perform_login(ctx.session, account, settings, logger)
