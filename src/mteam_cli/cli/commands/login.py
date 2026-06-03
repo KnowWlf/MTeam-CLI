@@ -23,7 +23,7 @@ async def handle(
 ) -> int:
     account = resolve_account_or_exit(args, settings)
     require_keepalive(account)
-    hub = build_notifier_hub(account, logger)
+    hub = build_notifier_hub(account, settings, logger)
 
     async with browser_session_ctx(settings, logger) as ctx:
         result = await perform_login(ctx.session, account, settings, logger)
