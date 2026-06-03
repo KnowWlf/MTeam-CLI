@@ -22,7 +22,8 @@ __pycache__
 .gitignore
 
 # Docs & meta
-README.md
+# NOTE: README.md is NOT ignored — pyproject.toml references it (readme = ...)
+# and the Dockerfile COPYs it for `pip install -e .`.
 LICENSE
 AGENTS.md
 .dockerignore
