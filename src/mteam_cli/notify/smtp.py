@@ -33,9 +33,15 @@ class SMTPNotifier:
         await asyncio.to_thread(self._sync_send, n)
 
     def _sync_send(self, n: Notification) -> None:
+        from email.utils import formataddr
+
         msg = MIMEText(n.body, _charset="utf-8")
         msg["Subject"] = f"[M-Team] {n.title}"
-        msg["From"] = f"MTeam-CLI <{self.sender}>"
+        # Header may carry a display name, but the SMTP envelope sender must be
+        # the bare address that matches the authenticated login user — QQ /
+        # Foxmail reject a mismatch with "502 Invalid parameters". So pass
+        # explicit from_addr/to_addrs (bare addresses) to send_message.
+        msg["From"] = formataddr(("MTeam-CLI", self.sender))
         msg["To"] = ", ".join(self.recipients)
 
         client_cls = smtplib.SMTP_SSL if self.port == 465 else smtplib.SMTP
@@ -44,5 +50,5 @@ class SMTPNotifier:
                 client.starttls()
             if self.user:
                 client.login(self.user, self.password)
-            client.send_message(msg)
+            client.send_message(msg, from_addr=self.sender, to_addrs=self.recipients)
         logger.info("SMTP 邮件已发送至 %s", ", ".join(self.recipients))
