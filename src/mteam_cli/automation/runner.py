@@ -42,6 +42,9 @@ async def run_one_account_tick(
         logger.exception("[%s] 保活过程崩溃", account.username)
         result = CheckinResult(username=account.username, ok=False, error=str(exc))
 
+    if not digest_text and account.digest_enabled and result.ok:
+        digest_text = await _maybe_fetch_digest([account], settings, logger)
+
     event = NotificationEvent.CHECKIN_DONE if result.ok else NotificationEvent.CHECKIN_FAILED
     title = f"[{account.username}] 签到{'成功' if result.ok else '失败'}"
     await hub.notify(
