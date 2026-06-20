@@ -51,3 +51,65 @@ def test_shape_falls_back_to_name():
     row = _shape(t, mode="tvshow", imdb=8.0)
     assert row["title"] == "Fallback"
     assert row["type"] == "电视剧"
+
+
+import asyncio
+import mteam_cli.api.digest as digest_mod
+
+
+def _fake_search_factory(by_mode):
+    async def _fake(api_key, keyword, *, base_url, mode, page_number=1, page_size=20):
+        return {"data": by_mode.get(mode, [])}
+    return _fake
+
+
+def test_fetch_filters_by_imdb_and_time(monkeypatch):
+    by_mode = {
+        "movie": [
+            {"id": "1", "name": "高分新片", "imdbRating": "8.5", "createdDate": "2026-06-05 10:00:00"},
+            {"id": "2", "name": "低分新片", "imdbRating": "6.0", "createdDate": "2026-06-05 10:00:00"},
+            {"id": "3", "name": "高分旧片", "imdbRating": "9.0", "createdDate": "2026-06-01 10:00:00"},
+            {"id": "4", "name": "无评分", "imdbRating": "", "createdDate": "2026-06-05 10:00:00"},
+        ],
+    }
+    monkeypatch.setattr(digest_mod, "search_torrents", _fake_search_factory(by_mode))
+    rows = asyncio.run(
+        digest_mod.fetch_high_score_digest(
+            "KEY", base_url="B", min_imdb=8.0, types=["movie"],
+            hours=24, limit=10, now="2026-06-05 12:00:00",
+        )
+    )
+    ids = [r["id"] for r in rows]
+    assert ids == ["1"]  # 只有 id=1 同时满足 IMDB≥8 且 24h 内
+
+
+def test_fetch_sorts_desc_and_limits(monkeypatch):
+    by_mode = {
+        "movie": [
+            {"id": "a", "name": "A", "imdbRating": "8.1", "createdDate": "2026-06-05 11:00:00"},
+            {"id": "b", "name": "B", "imdbRating": "9.5", "createdDate": "2026-06-05 11:00:00"},
+            {"id": "c", "name": "C", "imdbRating": "8.7", "createdDate": "2026-06-05 11:00:00"},
+        ],
+    }
+    monkeypatch.setattr(digest_mod, "search_torrents", _fake_search_factory(by_mode))
+    rows = asyncio.run(
+        digest_mod.fetch_high_score_digest(
+            "KEY", base_url="B", min_imdb=8.0, types=["movie"],
+            hours=24, limit=2, now="2026-06-05 12:00:00",
+        )
+    )
+    assert [r["id"] for r in rows] == ["b", "c"]  # 降序后截断到 2
+
+
+def test_fetch_unparseable_date_kept(monkeypatch):
+    by_mode = {"movie": [
+        {"id": "x", "name": "X", "imdbRating": "8.2", "createdDate": "bad-date"},
+    ]}
+    monkeypatch.setattr(digest_mod, "search_torrents", _fake_search_factory(by_mode))
+    rows = asyncio.run(
+        digest_mod.fetch_high_score_digest(
+            "KEY", base_url="B", min_imdb=8.0, types=["movie"],
+            hours=24, limit=10, now="2026-06-05 12:00:00",
+        )
+    )
+    assert [r["id"] for r in rows] == ["x"]  # 日期解析失败保留

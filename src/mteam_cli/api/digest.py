@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any
 
 from mteam_cli.api.humanize import naturalsize
+from mteam_cli.api.public import as_list, search_torrents
 
 # search mode → 中文展示名
 TYPE_LABELS = {
@@ -62,3 +63,35 @@ def _shape(t: dict[str, Any], *, mode: str, imdb: float) -> dict[str, Any]:
         "size": naturalsize(t.get("size")),
         "createdDate": t.get("createdDate"),
     }
+
+
+async def fetch_high_score_digest(
+    api_key: str,
+    *,
+    base_url: str,
+    min_imdb: float,
+    types: list[str],
+    hours: int,
+    limit: int,
+    now: str | None = None,
+) -> list[dict[str, Any]]:
+    """拉取各类型最新结果，按 IMDB 阈值 + 发布时间窗过滤，降序截断。
+
+    ``now`` 仅供测试注入。空关键词搜索取该类目最新；若生产不接受空关键词，
+    在此改用宽泛词或 mode=normal 类目过滤（probe-verified during impl）。
+    """
+    rows: list[dict[str, Any]] = []
+    for mode in types:
+        data = await search_torrents(
+            api_key, "", base_url=base_url, mode=mode, page_size=100
+        )
+        for t in as_list(data):
+            imdb = _parse_float(t.get("imdbRating"))
+            if imdb is None or imdb < min_imdb:
+                continue
+            age = _age_hours(t.get("createdDate"), now=now)
+            if age is not None and age > hours:
+                continue
+            rows.append(_shape(t, mode=mode, imdb=imdb))
+    rows.sort(key=lambda r: r["imdb"], reverse=True)
+    return rows[:limit]
