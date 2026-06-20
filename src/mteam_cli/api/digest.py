@@ -8,6 +8,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from mteam_cli.api.humanize import naturalsize
+
 # search mode → 中文展示名
 TYPE_LABELS = {
     "movie": "电影",
@@ -47,3 +49,16 @@ def _age_hours(created: Any, *, now: str | None = None) -> float | None:
         return None
     ref = datetime.strptime(now, _DATE_FMT) if now else datetime.now()
     return (ref - dt).total_seconds() / 3600.0
+
+
+def _shape(t: dict[str, Any], *, mode: str, imdb: float) -> dict[str, Any]:
+    """把一条 search 结果整形为 digest 行。"""
+    return {
+        "id": t.get("id"),
+        "title": t.get("smallDescr") or t.get("name"),
+        "type": TYPE_LABELS.get(mode, mode),
+        "imdb": imdb,
+        "douban": t.get("doubanRating") or "-",
+        "size": naturalsize(t.get("size")),
+        "createdDate": t.get("createdDate"),
+    }

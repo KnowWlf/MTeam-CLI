@@ -21,3 +21,33 @@ def test_age_hours_recent():
 def test_age_hours_unparseable_returns_none():
     # 解析失败返回 None（调用方据此保留条目，宁多勿漏）
     assert _age_hours("not-a-date", now="2026-06-05 12:00:00") is None
+
+
+from mteam_cli.api.digest import _shape
+
+
+def test_shape_extracts_fields():
+    t = {
+        "id": "123",
+        "smallDescr": "某电影名",
+        "name": "Movie.Name.2026",
+        "imdbRating": "9.1",
+        "doubanRating": "8.8",
+        "size": "1073741824",
+        "createdDate": "2026-06-05 10:00:00",
+    }
+    row = _shape(t, mode="movie", imdb=9.1)
+    assert row["id"] == "123"
+    assert row["title"] == "某电影名"          # smallDescr 优先
+    assert row["type"] == "电影"
+    assert row["imdb"] == 9.1
+    assert row["douban"] == "8.8"
+    assert row["size"] == "1.0 GiB"           # humanize binary
+    assert row["createdDate"] == "2026-06-05 10:00:00"
+
+
+def test_shape_falls_back_to_name():
+    t = {"id": "1", "name": "Fallback", "imdbRating": "8.0"}
+    row = _shape(t, mode="tvshow", imdb=8.0)
+    assert row["title"] == "Fallback"
+    assert row["type"] == "电视剧"
