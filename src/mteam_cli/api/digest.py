@@ -95,3 +95,13 @@ async def fetch_high_score_digest(
             rows.append(_shape(t, mode=mode, imdb=imdb))
     rows.sort(key=lambda r: r["imdb"], reverse=True)
     return rows[:limit]
+
+
+def format_digest(rows: list[dict[str, Any]], *, min_imdb: float) -> str:
+    """生成签到通知尾部的 digest 文本片段；空结果返回空串（整段省略）。"""
+    if not rows:
+        return ""
+    lines = [f"📽 今日高分新片 (IMDB≥{min_imdb})"]
+    for r in rows:
+        lines.append(f"• [{r['imdb']:g}] {r['title']} ({r['type']})")
+    return "\n".join(lines)

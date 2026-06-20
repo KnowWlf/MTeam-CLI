@@ -113,3 +113,22 @@ def test_fetch_unparseable_date_kept(monkeypatch):
         )
     )
     assert [r["id"] for r in rows] == ["x"]  # 日期解析失败保留
+
+
+from mteam_cli.api.digest import format_digest
+
+
+def test_format_digest_empty_returns_blank():
+    # 空结果整段省略
+    assert format_digest([], min_imdb=8.0) == ""
+
+
+def test_format_digest_lists_items():
+    rows = [
+        {"title": "片A", "type": "电影", "imdb": 9.3},
+        {"title": "剧B", "type": "电视剧", "imdb": 8.5},
+    ]
+    out = format_digest(rows, min_imdb=8.0)
+    assert "IMDB≥8.0" in out
+    assert "[9.3] 片A (电影)" in out
+    assert "[8.5] 剧B (电视剧)" in out
