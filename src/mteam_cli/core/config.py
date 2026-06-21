@@ -36,6 +36,25 @@ def _suffixed(name: str, i: int) -> str | None:
     return raw.strip() if raw and raw.strip() else None
 
 
+def _coalesce(value, default):
+    """返回 value，除非它是 None（此时返回 default）。
+
+    不能用 ``value or default``：``0.0`` / ``0`` 是合法配置值，
+    ``or`` 会把它们当假值吞掉。
+    """
+    return value if value is not None else default
+
+
+@dataclass(slots=True, frozen=True)
+class DigestConfig:
+    """一个账户解析后的最终 digest 参数（全局默认 + 账户覆盖合并后）。"""
+
+    types: list[str]
+    min_imdb: float
+    hours: int
+    limit: int
+
+
 @dataclass(slots=True, frozen=True)
 class Account:
     """One M-Team account.
