@@ -17,6 +17,7 @@ _FIELDS = [
     Field("title", "标题"),
     Field("type", "类型"),
     Field("imdb", "IMDB"),
+    Field("seeders", "做种"),
     Field("douban", "豆瓣"),
     Field("size", "大小"),
     Field("createdDate", "发布时间"),
@@ -29,6 +30,8 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--types", default=None, help="资源类型，逗号分隔（默认取全局配置）")
     p.add_argument("--hours", type=int, default=None, help="发布时间窗（小时，默认取全局配置）")
     p.add_argument("-n", "--limit", type=int, default=None, help="最多条数（默认取全局配置）")
+    p.add_argument("--min-seeders", type=int, default=None,
+                   help="非影视类型（music/adult）做种数下限（默认取配置）")
     add_account_arg(p)
     add_format_arg(p)
     add_raw_arg(p)
@@ -56,6 +59,7 @@ async def _run(args: argparse.Namespace, settings: Settings) -> int:
     )
     hours = args.hours if args.hours is not None else cfg.hours
     limit = args.limit if args.limit is not None else cfg.limit
+    min_seeders = args.min_seeders if args.min_seeders is not None else cfg.min_seeders
 
     rows = await fetch(
         fetch_high_score_digest(
@@ -65,6 +69,7 @@ async def _run(args: argparse.Namespace, settings: Settings) -> int:
             types=types,
             hours=hours,
             limit=limit,
+            min_seeders=min_seeders,
         )
     )
     # 与 search 不同：digest 是跨多次 search 的聚合+过滤，没有单一"原始 API

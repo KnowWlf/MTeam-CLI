@@ -127,6 +127,7 @@ async def _fetch_digest_for(
             types=cfg.types,
             hours=cfg.hours,
             limit=cfg.limit,
+            min_seeders=cfg.min_seeders,
         )
         logger.info(
             "[%s] digest: 命中 %d 条（min_imdb=%s, types=%s, hours=%d）",
