@@ -133,7 +133,7 @@ async def _fetch_digest_for(
             "[%s] digest: 命中 %d 条（min_imdb=%s, types=%s, hours=%d）",
             account.username, len(rows), cfg.min_imdb, ",".join(cfg.types), cfg.hours,
         )
-        return format_digest(rows, min_imdb=cfg.min_imdb)
+        return format_digest(rows)
     except Exception:  # noqa: BLE001 — digest 失败绝不影响签到
         logger.exception("[%s] digest 拉取失败，本轮通知不含高分新片", account.username)
         return ""

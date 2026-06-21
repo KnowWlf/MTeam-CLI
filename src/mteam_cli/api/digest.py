@@ -1,5 +1,6 @@
-"""高分新片摘要：复用 search API，本地按 IMDB + 发布时间过滤。
+"""高分/热门新片摘要：复用 search API，本地按类型质量信号 + 发布时间过滤。
 
+按类型选信号（影视用 IMDB 评分，music/adult 等用 status.seeders 做种数热度）。
 纯 HTTP（经由 api_post / search_torrents），不依赖 Playwright。
 """
 
@@ -143,7 +144,7 @@ async def fetch_high_score_digest(
     return (imdb_rows + seeders_rows)[:limit]
 
 
-def format_digest(rows: list[dict[str, Any]], *, min_imdb: float | None = None) -> str:
+def format_digest(rows: list[dict[str, Any]]) -> str:
     """生成签到通知尾部的 digest 文本片段；空结果返回空串（整段省略）。
 
     每行按其信号给标记：imdb 直接显示分数，seeders 加 🌱 前缀（做种数=热度）。
@@ -152,10 +153,9 @@ def format_digest(rows: list[dict[str, Any]], *, min_imdb: float | None = None) 
         return ""
     lines = ["📽 今日新片精选"]
     for r in rows:
-        score = r.get("score", r.get("imdb"))
         if r.get("signal_kind") == "seeders":
-            tag = f"🌱{score}"
+            tag = f"🌱{r['score']}"
         else:
-            tag = f"{float(score):g}"
+            tag = f"{float(r['score']):g}"
         lines.append(f"• [{tag}] {r['title']} ({r['type']})")
     return "\n".join(lines)

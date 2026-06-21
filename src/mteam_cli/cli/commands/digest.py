@@ -79,7 +79,7 @@ async def _run(args: argparse.Namespace, settings: Settings) -> int:
         return 0
 
     if not rows:
-        notice(f"当天无 IMDB≥{min_imdb:g} 的新片。")
+        notice(f"当天无符合条件的新片（影视 IMDB≥{min_imdb:g} / 其余做种≥{min_seeders}）。")
         return 0
     ranked = [{**r, "rank": i} for i, r in enumerate(rows, start=1)]
     emit_rows(ranked, _FIELDS, fmt=args.output_format)

@@ -191,7 +191,7 @@ from mteam_cli.api.digest import format_digest
 
 def test_format_digest_empty_returns_blank():
     # 空结果整段省略
-    assert format_digest([], min_imdb=8.0) == ""
+    assert format_digest([]) == ""
 
 
 def test_format_digest_lists_items():
@@ -199,7 +199,7 @@ def test_format_digest_lists_items():
         {"title": "片A", "type": "电影", "imdb": 9.3, "score": 9.3, "signal_kind": "imdb"},
         {"title": "剧B", "type": "电视剧", "imdb": 8.5, "score": 8.5, "signal_kind": "imdb"},
     ]
-    out = format_digest(rows, min_imdb=8.0)
+    out = format_digest(rows)
     assert "今日新片精选" in out
     assert "[9.3] 片A (电影)" in out
     assert "[8.5] 剧B (电视剧)" in out
